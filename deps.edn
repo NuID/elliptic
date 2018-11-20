@@ -1,0 +1,12 @@
+{:paths ["src"]
+ :deps
+ {org.bouncycastle/bcprov-jdk15on {:mvn/version "1.60"}
+  org.clojure/clojurescript {:mvn/version "1.10.439"}
+  org.clojure/clojure {:mvn/version "1.10.0-beta7"}
+  com.cognitect/transit-cljs {:mvn/version "0.8.256"}
+  com.cognitect/transit-clj {:mvn/version "0.8.309"}
+  NuID/bn {:git/url "git@github.com:NuID/bn.git"
+           :sha "2ac9990c67193649394cfc6563353ec2aaa41ff5"}}
+ :aliases
+ {:cambada
+  {:extra-deps {luchiniatwork/cambada {:mvn/version "1.0.0"}}}}}
