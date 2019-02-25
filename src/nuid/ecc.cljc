@@ -12,14 +12,15 @@
 
 (defrecord Point [p])
 
-(defn G [c]
+(defn base-point [c]
   (->Point #?(:clj (.getG c) :cljs (.-g c))))
 
-(defn n [c]
+(defn prime-order [c]
   (bn/->BN #?(:clj (.getN c) :cljs (.-n c))))
 
 (defn neg [p]
-  (->Point #?(:cljs (.neg (.-p p)))))
+  (->Point #?(:clj (.negate (.-p p))
+              :cljs (.neg (.-p p)))))
 
 (defn add [p q]
   (->Point (.add (.-p p) (.-p q))))
@@ -28,20 +29,19 @@
   (->Point #?(:clj (.multiply (.-p p) (.-n k))
               :cljs (.mul (.-p p) (.-n k)))))
 
-(defn eq [p q]
+(defn eq? [p q]
   #?(:clj (= (.-p p) (.-p q))
      :cljs (.eq (.-p p) (.-p q))))
 
 (defn generate-curve [& [id]]
   (let [id' (cond (keyword? id) (name id)
                   (string? id) id
-                  (nil? id) "ed25519")]
+                  (nil? id) "secp256k1")]
     #?(:clj (CustomNamedCurves/getByName id')
        :cljs (e/ec. id'))))
 
 (def supported-curves
-  {:secp256k1 (generate-curve :secp256k1)
-   :ed25519 (generate-curve :ed25519)})
+  {:secp256k1 (generate-curve :secp256k1)})
 
 (defn get-curve [pt-or-curve]
   #?(:clj (.getCurve (.-p pt-or-curve))
@@ -49,21 +49,25 @@
              (.-curve p)
              (.-curve pt-or-curve))))
 
-(defn what-curve [pt]
-  (let [g (G (get-curve pt))]
-    (ffirst (filter #(eq (G (second %)) g) supported-curves))))
+(defn get-curve-id [pt]
+  (let [g (base-point (get-curve pt))]
+    (ffirst (filter #(eq? (base-point (second %)) g) supported-curves))))
 
 (defn pt->hex [pt]
-  #?(:cljs (.encode (.-p pt) "hex")))
+  (bn/bn->str
+   (bn/str->bn
+    #?(:cljs (.encode (.-p pt) "hex")
+       :clj (.getEncoded (.-p pt))) 16)
+    16))
 
 (defn pt->rep [pt]
-  [(what-curve pt) (pt->hex pt)])
+  [(get-curve-id pt) (pt->hex pt)])
 
 (defn rep->pt [[c encoded]]
   (let [curve (get-curve (get supported-curves c))]
     (->Point #?(:cljs (.decodePoint curve encoded "hex")))))
 
-(def point-tag (str ::point))
+(def point-tag "ecc.pt")
 
 (def point-write-handler
   {Point (t/write-handler
@@ -90,17 +94,17 @@
                 :supported-curves supported-curves
                 :generate-keypair generate-keypair
                 :generate-curve generate-curve
+                :get-curve-id get-curve-id
                 :get-private get-private
+                :prime-order prime-order
                 :get-public get-public
-                :what-curve what-curve
+                :base-point base-point
                 :get-curve get-curve
                 :point-tag point-tag
-                :pt->hex pt->hex
-                :pt->rep pt->rep
                 :rep->pt rep->pt
+                :pt->rep pt->rep
+                :pt->hex pt->hex
                 :add add
                 :mul mul
                 :neg neg
-                :eq eq
-                :G G
-                :n n}))
+                :eq? eq?}))
