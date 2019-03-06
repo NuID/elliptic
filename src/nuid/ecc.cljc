@@ -1,14 +1,15 @@
 (ns nuid.ecc
   (:require
    [cognitect.transit :as t]
+   [nuid.utils :as utils]
    [nuid.bn :as bn]
    #?@(:clj [[clojure.data.json :as json]]
        :cljs [["elliptic" :as e]
               ["buffer" :as b]]))
   #?@(:clj
       [(:import
-        (org.bouncycastle.crypto.ec
-         CustomNamedCurves))]))
+        (org.bouncycastle.crypto.ec CustomNamedCurves)
+        (org.bouncycastle.math.ec.custom.sec SecP256K1Curve))]))
 
 (defrecord Point [p])
 
@@ -33,7 +34,7 @@
   #?(:clj (= (.-p p) (.-p q))
      :cljs (.eq (.-p p) (.-p q))))
 
-(defn generate-curve [& [id]]
+(defn generate-curve [& [{:keys [id]}]]
   (let [id' (cond (keyword? id) (name id)
                   (string? id) id
                   (nil? id) "secp256k1")]
@@ -41,31 +42,31 @@
        :cljs (e/ec. id'))))
 
 (def supported-curves
-  {:secp256k1 (generate-curve :secp256k1)})
+  {:secp256k1 (generate-curve {:id :secp256k1})})
 
 (defn get-curve [pt-or-curve]
-  #?(:clj (.getCurve (.-p pt-or-curve))
-     :cljs (if-let [p (.-p pt-or-curve)]
-             (.-curve p)
-             (.-curve pt-or-curve))))
+  (let [get-curve- #?@(:clj [#(.getCurve %)] :cljs [#(.-curve %)])]
+    (if (instance? nuid.ecc.Point pt-or-curve)
+      (get-curve- (.-p pt-or-curve))
+      (get-curve- pt-or-curve))))
 
 (defn get-curve-id [pt]
-  (let [g (base-point (get-curve pt))]
-    (ffirst (filter #(eq? (base-point (second %)) g) supported-curves))))
+  #?(:clj (when (instance? SecP256K1Curve (get-curve pt)) :secp256k1)
+     :cljs (let [g (base-point (get-curve pt))]
+             (ffirst (filter #(eq? (base-point (second %)) g) supported-curves)))))
 
-(defn pt->hex [pt]
-  (bn/bn->str
-   (bn/str->bn
-    #?(:cljs (.encode (.-p pt) "hex")
-       :clj (.getEncoded (.-p pt))) 16)
-    16))
+(defn pt->base64 [pt]
+  (utils/str->base64 #?(:clj (.getEncoded (.-p pt) true)
+                        :cljs (.encodeCompressed (.-p pt)))))
 
 (defn pt->rep [pt]
-  [(get-curve-id pt) (pt->hex pt)])
+  [(get-curve-id pt) (pt->base64 pt)])
 
-(defn rep->pt [[c encoded]]
-  (let [curve (get-curve (get supported-curves c))]
-    (->Point #?(:cljs (.decodePoint curve encoded "hex")))))
+(defn base64->pt [curve b64]
+  (->Point (.decodePoint curve (utils/base64->bytes b64) #?@(:cljs [true]))))
+
+(defn rep->pt [[curve-id encoded]]
+  (base64->pt (get-curve (get supported-curves curve-id)) encoded))
 
 (def point-tag "ecc.pt")
 
@@ -99,11 +100,12 @@
                 :prime-order prime-order
                 :get-public get-public
                 :base-point base-point
+                :pt->base64 pt->base64
+                :base64->pt base64->pt
                 :get-curve get-curve
                 :point-tag point-tag
                 :rep->pt rep->pt
                 :pt->rep pt->rep
-                :pt->hex pt->hex
                 :add add
                 :mul mul
                 :neg neg
