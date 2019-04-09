@@ -59,7 +59,7 @@ $ node
 > E.point.mul(g, n); // Infinity
 > E.point.add(g, g);
 > var b64 = E.point.base64(g);
-> E.point.from-base64(c, b64);
+> E.point.fromBase64(c, b64);
 ```
 
 ### browser:
