@@ -4,7 +4,7 @@
    [cognitect.transit :as t]
    [nuid.base64 :as base64]
    #?@(:cljs [["elliptic" :as e]]))
-  #?@(:clj [(:import (org.bouncycastle.math.ec.custom.sec SecP256K1Curve))]))
+  #?@(:clj [(:import (org.bouncycastle.math.ec.custom.sec SecP256K1Point))]))
 
 (defn neg [p]
   (curve/->Point
@@ -41,11 +41,10 @@
   "Naive mechanism for identifying the curve `pt` is associated with.
   Needed primarily for {en,de}coding purposes."
   [pt]
-  (let [c (curve/curve pt)]
-    #?(:clj (when (instance? SecP256K1Curve c) :secp256k1)
-       :cljs (ffirst (filter #(eq? (curve/base (second %))
-                                   (curve/base c))
-                             curve/supported)))))
+  #?(:clj (when (instance? SecP256K1Point (.-p pt)) :secp256k1)
+     :cljs (ffirst (filter #(eq? (curve/base (second %))
+                                 (curve/base (curve/curve pt)))
+                           curve/supported))))
 
 (defn rep [pt]
   [(curve-id pt)

@@ -31,11 +31,13 @@ $ clj # or shadow-cljs node-repl
 => (point/mul g (bn/from "123333333333333333333333333333333333321"))
 => (point/add g *1)
 
-;; These will need to be added to the classpath, e.g. by using [nuid.deps](https://github.com/nuid/deps)
+;; These will need to be added to the classpath, e.g. by using nuid.deps
 => (require '[nuid.cryptography :as crypt])
 => (require '[nuid.transit :as transit])
+
 => (def r (crypt/secure-random-bn-lt 32 n))
 => (point/mul g r)
+=> (transit/write {:handlers point/write-handler} g)
 ```
 
 ## From JavaScript
