@@ -1,80 +1,118 @@
 (ns nuid.elliptic.curve.point
   (:require
    [nuid.elliptic.curve :as curve]
+   [nuid.transit :as transit]
    [cognitect.transit :as t]
    [nuid.base64 :as base64]
-   #?@(:cljs [["elliptic" :as e]]))
-  #?@(:clj [(:import (org.bouncycastle.math.ec.custom.sec SecP256K1Point))]))
+   #?@(:cljs
+       [["elliptic" :as e]]))
+  #?@(:clj
+      [(:import
+        (org.bouncycastle.math.ec ECPoint))]))
 
-(defn neg [p]
-  (curve/->Point
-   #?(:clj (.negate (.-p p))
-      :cljs (.neg (.-p p)))))
+(defprotocol Pointable
+  (from [x]))
 
-(defn add [p q]
-  (curve/->Point
-   (.add (.-p p) (.-p q))))
+(defprotocol Point
+  (add [p q])
+  (mul [p q])
+  (eq? [p q])
+  (neg [p]))
 
-(defn mul [p k]
-  (curve/->Point
-   #?(:clj (.multiply (.-p p) (.-n k))
-      :cljs (.mul (.-p p) (.-n k)))))
+#?(:clj
+   (extend-protocol Pointable
+     clojure.lang.PersistentVector
+     (from [[id b64]]
+       (.decodePoint
+        (curve/from (curve/from id))
+        (base64/decode b64)))))
 
-(defn eq? [p q]
-  (let [p (.-p p) q (.-p q)]
-    #?(:clj (= p q)
-       :cljs (.eq p q))))
+#?(:clj
+   (extend-type org.bouncycastle.math.ec.ECPoint
+     Point
+     (add [p q] (.add p q))
+     (mul [p k] (.multiply p k))
+     (eq? [p q] (= p q))
+     (neg [p] (.negate p))
 
-(defn base64 [pt]
-  (base64/encode
-   #?(:clj (.getEncoded (.-p pt) true)
-      :cljs (.encodeCompressed (.-p pt)))))
+     curve/Curveable
+     (from [x] (.getCurve x))
 
-(defn from-base64 [curve b64]
-  (curve/->Point
-   (.decodePoint
-    (curve/curve curve)
-    (base64/decode b64)
-    #?@(:cljs [true]))))
+     base64/Base64able
+     (encode [x]
+       (base64/encode
+        (.getEncoded x true)))
 
-(defn curve-id
-  "Naive mechanism for identifying the curve `pt` is associated with.
-  Needed primarily for {en,de}coding purposes."
-  [pt]
-  #?(:clj (when (instance? SecP256K1Point (.-p pt)) :secp256k1)
-     :cljs (ffirst (filter #(eq? (curve/base (second %))
-                                 (curve/base (curve/curve pt)))
-                           curve/supported))))
+     transit/TransitWritable
+     (rep [x]
+       [(curve/id (curve/from x))
+        (base64/encode x)])))
 
-(defn rep [pt]
-  [(curve-id pt)
-   (base64 pt)])
+#?(:cljs
+   (extend-protocol Pointable
+     js/Array
+     (from [[id b64]]
+       (.decodePoint
+        (curve/from (curve/from id))
+        (base64/decode b64)
+        true))))
 
-(defn from-rep [[curve-id b64]]
-  (from-base64
-   (get curve/supported curve-id)
-   b64))
+#?(:cljs
+   (defrecord WritablePoint [p]
+     transit/TransitWritable
+     (rep [_]
+       [(curve/id (curve/from p))
+        (base64/encode p)])))
+
+#?(:cljs
+   (defn- identify-curve
+     "Attempts to fingerprint a raw curve
+     when `curve/id` is unavailable."
+     [c]
+     (ffirst
+      (filter
+       #(eq? (curve/base (second %)) (.-g c))
+       curve/supported))))
+
+#?(:cljs
+   (extend-type e/curve.base.BasePoint
+     Point
+     (add [p q] (.add p q))
+     (mul [p k] (.mul p k))
+     (eq? [p q] (.eq p q))
+     (neg [p] (.neg p))
+
+     curve/Curveable
+     (from [x]
+       (let [c (.-curve x) id (identify-curve c)]
+         (curve/->Wrapped id c)))
+
+     base64/Base64able
+     (encode [x]
+       (base64/encode
+        (.encodeCompressed x)))
+
+     transit/Wrappable
+     (wrap [x] (->WritablePoint x))))
 
 (def tag "ec.pt")
 
-(def write-handler
-  {nuid.elliptic.curve.Point
-   (t/write-handler
-    (constantly tag)
-    rep)})
-
 (def read-handler
-  {tag (t/read-handler from-rep)})
+  {tag (t/read-handler #(from %))})
 
-#?(:cljs (def exports #js {:writeHandler write-handler
-                           :readHandler read-handler
-                           :fromBase64 from-base64
-                           :curveId curve-id
-                           :fromRep from-rep
-                           :base64 base64
-                           :rep rep
-                           :tag tag
-                           :mul mul
-                           :add add
-                           :neg neg
-                           :eq eq?}))
+(def write-handler
+  (let [h (t/write-handler (constantly tag) #(transit/rep %))]
+    #?(:clj {org.bouncycastle.math.ec.ECPoint h}
+       :cljs {WritablePoint h})))
+
+#?(:cljs
+   (def exports
+     #js {:writeHandler write-handler
+          :readHandler read-handler
+          :from from
+          :tag tag
+          :rep rep
+          :mul mul
+          :add add
+          :neg neg
+          :eq eq?}))

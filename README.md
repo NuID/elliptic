@@ -24,20 +24,16 @@ Cross-platform elliptic curve arithmetic.
 $ clj # or shadow-cljs node-repl
 => (require '[nuid.elliptic.curve.point :as point])
 => (require '[nuid.elliptic.curve :as curve])
+=> (require '[nuid.transit :as transit])
 => (require '[nuid.bn :as bn])
-=> (def c (curve/named :secp256k1))
+=> (def c (curve/from :secp256k1))
 => (def g (curve/base c))
 => (def n (curve/order c))
-=> (point/mul g (bn/from "123333333333333333333333333333333333321"))
-=> (point/add g *1)
-
-;; These will need to be added to the classpath, e.g. by using nuid.deps
-=> (require '[nuid.cryptography :as crypt])
-=> (require '[nuid.transit :as transit])
-
-=> (def r (crypt/secure-random-bn-lt 32 n))
-=> (point/mul g r)
-=> (transit/write {:handlers point/write-handler} g)
+=> (def k (bn/from "123333333333333333333333333333333333333333321"))
+=> (def p (point/mul g k))
+=> (def q (point/add g p))
+=> (def w (transit/write {:handlers point/write-handler} p))
+=> (def r (transit/read {:handlers point/read-handler} w))
 ```
 
 ## From JavaScript
@@ -50,16 +46,17 @@ This library aims to be usable from JavaScript. More work is necessary to establ
 $ shadow-cljs release node
 $ node
 > var E = require('./target/node/nuid_elliptic');
+> var Transit = require('<...>/nuid_transit');
 
 ;; NOTE: many nuid.elliptic functions return clojure types in node
-> var c = E.curve.named("secp256k1");
-> var g = E.curve.base(c);
-> var n = E.curve.order(c);
-> E.point.curveId(g);
-> E.point.mul(g, n); // Infinity
-> E.point.add(g, g);
-> var b64 = E.point.base64(g);
-> E.point.fromBase64(c, b64);
+> var c = Elliptic.curve.from("secp256k1");
+> var g = Elliptic.curve.base(c);
+> var n = Elliptic.curve.order(c);
+> Elliptic.curve.id(c);
+> Elliptic.point.mul(g, n); // Infinity
+> Elliptic.point.add(g, g);
+> var w = Transit.write(g, Elliptic.point.writeHandler);
+> var r = Transit.read(w, Elliptic.point.readHandler);
 ```
 
 ### browser:

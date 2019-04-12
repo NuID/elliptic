@@ -1,43 +1,67 @@
 (ns nuid.elliptic.curve
-  (:require
-   [nuid.bn :as bn]
-   #?@(:cljs [["elliptic" :as e]]))
-  #?@(:clj [(:import (org.bouncycastle.crypto.ec CustomNamedCurves))]))
+  #?@(:clj
+      [(:import
+        (org.bouncycastle.math.ec.custom.sec SecP256K1Curve)
+        (org.bouncycastle.crypto.ec CustomNamedCurves)
+        (org.bouncycastle.asn1.x9 X9ECParameters))])
+  #?@(:cljs
+      [(:require ["elliptic" :as e])]))
 
-(defrecord Point [p])
+(defprotocol Curveable
+  (from [x]))
 
-(defn curve
-  "Naive function to access the underlying curve implementation of either a
-  nuid.elliptic.curve.Point, a host-native point, or a host-native curve.
-  This is useful for calling host-specific curve functions."
-  [pt-or-curve]
-  (let [get-curve- #?@(:clj [#(.getCurve %)] :cljs [#(.-curve %)])
-        x (if (instance? nuid.elliptic.curve.Point pt-or-curve)
-            (.-p pt-or-curve)
-            pt-or-curve)]
-    (get-curve- x)))
+(defprotocol Curve
+  (id [c])
+  (base [c])
+  (order [c]))
 
-(defn named [id]
-  (let [id (cond (keyword? id) (name id)
-                 (string? id) id)]
-    #?(:clj (CustomNamedCurves/getByName id)
-       :cljs (e/ec. id))))
+#?(:clj
+   (extend-protocol Curveable
+     java.lang.String
+     (from [x] (CustomNamedCurves/getByName x))
 
-(def supported (into {} (map (juxt identity named)) [:secp256k1]))
+     clojure.lang.Keyword
+     (from [x] (from (name x)))
 
-(defn base [c]
-  (->Point
-   #?(:clj (.getG c)
-      :cljs (.-g c))))
+     org.bouncycastle.asn1.x9.X9ECParameters
+     (from [x] (.getCurve x))))
 
-(defn order [c]
-  (bn/->BN
-   #?(:clj (.getN c)
-      :cljs (.-n c))))
+#?(:clj
+   (extend-protocol Curve
+     org.bouncycastle.asn1.x9.X9ECParameters
+     (id [c] (id (from c)))
+     (base [c] (.getG c))
+     (order [c] (.getN c))
 
-#?(:cljs (def exports #js {:supported (clj->js supported)
-                           :Point ->Point
-                           :curve curve
-                           :named named
-                           :order order
-                           :base base}))
+     org.bouncycastle.math.ec.custom.sec.SecP256K1Curve
+     (id [c] :secp256k1)
+     (base [c] (base (from (id c))))
+     (order [c] (order (from (id c))))))
+
+#?(:cljs
+   (defrecord Wrapped [id curve]
+     Curveable
+     (from [_] (.-curve curve))
+
+     Curve
+     (id [_] (keyword id))
+     (base [_] (.-g curve))
+     (order [_] (.-n curve))))
+
+#?(:cljs
+   (extend-protocol Curveable
+     string
+     (from [x] (->Wrapped (keyword x) (e/ec. x)))
+
+     cljs.core.Keyword
+     (from [x] (->Wrapped x (e/ec. (name x))))))
+
+(def supported (into {} (map (juxt identity from)) [:secp256k1]))
+
+#?(:cljs
+   (def exports
+     #js {:wrap ->Wrapped
+          :order order
+          :base base
+          :from from
+          :id id}))
