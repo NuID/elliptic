@@ -16,7 +16,7 @@ Cross-platform elliptic curve arithmetic.
 
 ### tools.deps:
 
-`{nuid/elliptic {:git/url "https://github.com/nuid/elliptic" :sha "..."}`
+`{nuid/elliptic {:git/url "https://github.com/nuid/elliptic" :sha "..."}}`
 
 ### usage:
 
