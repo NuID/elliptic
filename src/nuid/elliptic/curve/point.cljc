@@ -92,8 +92,9 @@
        (base64/encode
         (.encodeCompressed x)))
 
-     transit/Wrappable
-     (wrap [x] (->WritablePoint x))))
+     transit/TransitWritable
+     (rep [x] [(curve/id (curve/from x))
+               (base64/encode x)])))
 
 (def tag "ec.pt")
 
@@ -101,9 +102,8 @@
   {tag (t/read-handler #(from %))})
 
 (def write-handler
-  (let [h (t/write-handler (constantly tag) #(transit/rep %))]
-    #?(:clj {org.bouncycastle.math.ec.ECPoint h}
-       :cljs {WritablePoint h})))
+  (let [c #?(:clj ECPoint :cljs "default")]
+    {c (t/write-handler (constantly tag) #(transit/rep %))}))
 
 #?(:cljs
    (def exports

@@ -11,8 +11,8 @@
   (from [x]))
 
 (defprotocol Curve
-  (id [c])
-  (base [c])
+  (id    [c])
+  (base  [c])
   (order [c]))
 
 #?(:clj
@@ -29,13 +29,13 @@
 #?(:clj
    (extend-protocol Curve
      org.bouncycastle.asn1.x9.X9ECParameters
-     (id [c] (id (from c)))
-     (base [c] (.getG c))
+     (id    [c] (id (from c)))
+     (base  [c] (.getG c))
      (order [c] (.getN c))
 
      org.bouncycastle.math.ec.custom.sec.SecP256K1Curve
-     (id [c] :secp256k1)
-     (base [c] (base (from (id c))))
+     (id    [c] :secp256k1)
+     (base  [c] (base (from (id c))))
      (order [c] (order (from (id c))))))
 
 #?(:cljs
@@ -44,8 +44,8 @@
      (from [_] (.-curve curve))
 
      Curve
-     (id [_] (keyword id))
-     (base [_] (.-g curve))
+     (id    [_] (keyword id))
+     (base  [_] (.-g curve))
      (order [_] (.-n curve))))
 
 #?(:cljs
