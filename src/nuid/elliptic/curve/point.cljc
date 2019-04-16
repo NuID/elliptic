@@ -50,19 +50,12 @@
 
 #?(:cljs
    (extend-protocol Pointable
-     js/Array
+     array
      (from [[id b64]]
        (.decodePoint
         (curve/from (curve/from id))
         (base64/decode b64)
         true))))
-
-#?(:cljs
-   (defrecord WritablePoint [p]
-     transit/TransitWritable
-     (rep [_]
-       [(curve/id (curve/from p))
-        (base64/encode p)])))
 
 #?(:cljs
    (defn- identify-curve
@@ -109,9 +102,9 @@
    (def exports
      #js {:writeHandler write-handler
           :readHandler read-handler
+          :rep transit/rep
           :from from
           :tag tag
-          :rep rep
           :mul mul
           :add add
           :neg neg
