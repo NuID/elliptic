@@ -1,10 +1,10 @@
 {:deps
  {nuid/transit
   {:git/url "https://github.com/nuid/transit.git",
-   :sha "05a3ad49cfeff1ef6c555795406a26fb7a08c2d5"},
+   :sha "92b66e19d039ad0989cd83f3b5a387d011d96d2b"},
   nuid/base64
   {:git/url "https://github.com/nuid/base64.git",
-   :sha "0ddf1b801de1b603713bf59afb444066e22b8bc9"},
+   :sha "5fc7aaf1b5da2ff2a6c3a2568c97333afbb9fd94"},
   org.bouncycastle/bcprov-jdk15on {:mvn/version "1.60"},
   com.cognitect/transit-cljs {:mvn/version "0.8.256"},
   org.clojure/clojurescript {:mvn/version "1.10.520"},
