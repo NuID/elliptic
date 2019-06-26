@@ -34,7 +34,7 @@
      (order [c] (.getN c))
 
      org.bouncycastle.math.ec.custom.sec.SecP256K1Curve
-     (id    [c] :secp256k1)
+     (id    [c] "secp256k1")
      (base  [c] (base (from (id c))))
      (order [c] (order (from (id c))))))
 
@@ -56,7 +56,7 @@
      cljs.core.Keyword
      (from [x] (->Wrapped x (e/ec. (name x))))))
 
-(def supported (into {} (map (juxt identity from)) [:secp256k1]))
+(def supported (into {} (map (juxt identity from)) ["secp256k1"]))
 
 #?(:cljs
    (def exports

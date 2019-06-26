@@ -3,15 +3,14 @@
    [nuid.elliptic.curve :as curve]
    [nuid.transit :as transit]
    [cognitect.transit :as t]
+   [nuid.cbor :as nuid.cbor]
    [nuid.base64 :as base64]
    #?@(:cljs
        [["elliptic" :as e]]))
   #?@(:clj
       [(:import
+        (org.bouncycastle.math.ec.custom.sec SecP256K1Point)
         (org.bouncycastle.math.ec ECPoint))]))
-
-(defprotocol Pointable
-  (from [x]))
 
 (defprotocol Point
   (add [p q])
@@ -19,16 +18,20 @@
   (eq? [p q])
   (neg [p]))
 
-#?(:clj
-   (extend-protocol Pointable
-     clojure.lang.PersistentVector
-     (from [[id b64]]
-       (.decodePoint
-        (curve/from (curve/from id))
-        (base64/decode b64)))))
+(defn rep
+  [point]
+  {"curve" (name (curve/id (curve/from point)))
+   "point" (base64/encode point)})
+
+(defn from-rep
+  [{:strs [curve point compressed]}]
+  (.decodePoint
+   (curve/from (curve/from curve))
+   (base64/decode point)
+   #?@(:cljs [true])))
 
 #?(:clj
-   (extend-type org.bouncycastle.math.ec.ECPoint
+   (extend-type ECPoint
      Point
      (add [p q] (.add p q))
      (mul [p k] (.multiply p k))
@@ -41,21 +44,7 @@
      base64/Base64able
      (encode [x]
        (base64/encode
-        (.getEncoded x true)))
-
-     transit/TransitWritable
-     (rep [x]
-       [(curve/id (curve/from x))
-        (base64/encode x)])))
-
-#?(:cljs
-   (extend-protocol Pointable
-     array
-     (from [[id b64]]
-       (.decodePoint
-        (curve/from (curve/from id))
-        (base64/decode b64)
-        true))))
+        (.getEncoded x true)))))
 
 #?(:cljs
    (defn- identify-curve
@@ -83,28 +72,40 @@
      base64/Base64able
      (encode [x]
        (base64/encode
-        (.encodeCompressed x)))
+        (.encodeCompressed x)))))
 
-     transit/TransitWritable
-     (rep [x] [(curve/id (curve/from x))
-               (base64/encode x)])))
+(def transit-tag "ec.pt")
 
-(def tag "ec.pt")
+(def transit-read-handler
+  {transit-tag (t/read-handler #(from-rep %))})
 
-(def read-handler
-  {tag (t/read-handler #(from %))})
-
-(def write-handler
+(def transit-write-handler
   (let [c #?(:clj ECPoint :cljs "default")]
-    {c (t/write-handler (constantly tag) #(transit/rep %))}))
+    {c (t/write-handler
+        (constantly transit-tag)
+        #(rep %))}))
+
+(def cbor-tag (symbol transit-tag))
+
+#?(:clj
+   (nuid.cbor/register-tagged-literal-read-handler!
+    {cbor-tag #(from-rep %)}))
+
+#?(:clj
+   (def cbor-write-handler
+     ;; `clj-cbor` doesn't support inheritance-aware dispatch yet.
+     (let [c #?(:clj SecP256K1Point)]
+       {c #(tagged-literal
+            cbor-tag
+            (rep %))})))
 
 #?(:cljs
    (def exports
-     #js {:writeHandler write-handler
-          :readHandler read-handler
-          :rep transit/rep
-          :from from
-          :tag tag
+     #js {:transitWriteHandler transit-write-handler
+          :transitReadHandler transit-read-handler
+          :transitTag transit-tag
+          :fromRep from-rep
+          :rep rep
           :mul mul
           :add add
           :neg neg
