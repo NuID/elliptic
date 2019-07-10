@@ -24,7 +24,7 @@
    "point" (base64/encode point)})
 
 (defn from-rep
-  [{:strs [curve point compressed]}]
+  [{:strs [curve point]}]
   (.decodePoint
    (curve/from (curve/from curve))
    (base64/decode point)
@@ -66,8 +66,8 @@
 
      curve/Curveable
      (from [x]
-       (let [c (.-curve x) id (identify-curve c)]
-         (curve/->Wrapped id c)))
+       (let [id (identify-curve (.-curve x))]
+         (curve/from id)))
 
      base64/Base64able
      (encode [x]
