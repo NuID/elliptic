@@ -1,10 +1,10 @@
 {:deps
  {nuid/transit
   {:git/url "https://github.com/nuid/transit.git",
-   :sha "96826ac172dbbcf28a4cac7ac9cea2e89cb26311"},
+   :sha "906a43dbf6445512029274cadcdf95a36b3c4c9a"},
   nuid/base64
   {:git/url "https://github.com/nuid/base64.git",
-   :sha "cc5275c89da8c65a392bb38a545cb276f23b2671"},
+   :sha "097acbb96c20b27bbfe41271efaf281d157d2a00"},
   nuid/cbor
   {:git/url "https://github.com/nuid/cbor.git",
    :sha "0b64aecfcbf1fb536b27207f9714fad6ed004627"},
