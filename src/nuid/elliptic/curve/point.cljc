@@ -20,8 +20,8 @@
 
 (defn rep
   [point]
-  {:curve (name (curve/id (curve/from point)))
-   :point (base64/encode point)})
+  {"curve" (name (curve/id (curve/from point)))
+   "point" (base64/encode point)})
 
 (defn from-rep
   [{:strs [curve point]}]
