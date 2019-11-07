@@ -35,7 +35,7 @@
 (defn- ext->int
   [{:keys [curve point]}]
   (.decodePoint
-   (curve/from curve)
+   ^js (curve/from curve)
    (base64/decode point)))
 
 ;; TODO: clean up once cljs supports `s/select`
