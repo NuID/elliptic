@@ -24,7 +24,7 @@
 
 (s/def ::id #{"secp256k1"})
 (s/def ::external (s/keys :req-un [::id]))
-(s/def ::internal #(satisfies? Curve %))
+(s/def ::internal (fn [x] (satisfies? Curve x)))
 (s/def ::representation
   (s/or
    ::external ::external
@@ -47,8 +47,10 @@
            (= ::external (first c)) (second c)
            (= ::internal (first c)) {:id (id (second c))}
            :else                    ::s/invalid))))
-    (fn [] (->> (s/gen ::external)
-                (gen/fmap (comp from :id))))))
+    (fn []
+      (->>
+       (s/gen ::external)
+       (gen/fmap (comp from :id))))))
 
 #?(:clj
    (extend-protocol Curveable
@@ -76,12 +78,12 @@
 #?(:cljs
    (defrecord Wrapped [id- curve]
      Curveable
-     (from [_] (.-curve curve))
+     (from [_] (.-curve ^js curve))
 
      Curve
      (id    [_] id-)
-     (base  [_] (.-g curve))
-     (order [_] (.-n curve))))
+     (base  [_] (.-g ^js curve))
+     (order [_] (.-n ^js curve))))
 
 #?(:cljs
    (extend-protocol Curveable

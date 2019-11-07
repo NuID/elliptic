@@ -1,15 +1,15 @@
-{:builds
+{:deps {:aliases [:shadow]}
+ :builds
  {:browser
-  {:modules {:nuid_elliptic {:entries [nuid.elliptic]}},
+  {:modules    {:nuid_elliptic
+                {:entries
+                 [nuid.elliptic.curve
+                  nuid.elliptic.curve.point]}},
    :output-dir "target/browser",
    :asset-path "target/browser",
-   :target :browser,
-   :compiler-options
-   {:externs ["externs/bn.ext.js" "externs/elliptic.ext.js"]}},
+   :target     :browser},
+
   :node
-  {:output-to "target/node/nuid_elliptic.js",
-   :exports-var nuid.elliptic/exports,
-   :target :node-library,
-   :compiler-options
-   {:externs ["externs/bn.ext.js" "externs/elliptic.ext.js"]}}},
- :deps {:aliases [:shadow]}}
+  {:output-to   "target/node/nuid_elliptic.js",
+   :exports-var nuid.elliptic.curve/exports,
+   :target      :node-library}}}

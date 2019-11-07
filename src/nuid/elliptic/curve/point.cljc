@@ -43,7 +43,7 @@
 (s/def ::external
   (s/keys :req-un [::curve/curve
                    :nuid.elliptic.curve.point.encoded/point]))
-(s/def ::internal #(satisfies? Point %))
+(s/def ::internal (fn [x] (satisfies? Point x)))
 (s/def ::representation
   (s/or
    ::external ::external
@@ -66,12 +66,14 @@
            (= ::external (first c)) (second c)
            (= ::internal (first c)) (int->ext (second c))
            :else                    ::s/invalid))))
-    (fn [] (->> (gen/tuple
-                 (->> (s/gen ::curve/curve)
-                      (gen/fmap curve/base))
-                 (s/gen ::bn/bn))
-                (gen/fmap (partial apply mul))
-                (gen/such-that (comp not inf?))))))
+    (fn []
+      (->>
+       (gen/tuple (->>
+                   (s/gen ::curve/curve)
+                   (gen/fmap curve/base))
+                  (s/gen ::bn/bn))
+       (gen/fmap (partial apply mul))
+       (gen/such-that (comp not inf?))))))
 
 #?(:clj
    (extend-type ECPoint
@@ -93,9 +95,10 @@
        (base64/encode p))))
 
 #?(:cljs
-   (let [xf (map (comp (juxt curve/base curve/id) curve/from))
+   (let [xf       (map (comp (juxt curve/base curve/id) curve/from))
          base->id (into {} xf (s/form ::curve/id))]
      (defn- identify-curve
+       "Attempt to identify a curve by its base point"
        [c]
        (base->id (obj/get c "g")))))
 
