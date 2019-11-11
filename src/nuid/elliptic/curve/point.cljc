@@ -32,18 +32,31 @@
   {:curve (s/unform ::curve/curve (curve/from point))
    :point (encode point)})
 
-(defn- ext->int
-  [{:keys [curve point]}]
-  (.decodePoint
-   ^js (curve/from curve)
-   (base64/decode point)))
+#?(:clj
+   (defn- ext->int
+     [{:keys [curve point]}]
+     (.decodePoint
+      (curve/from curve)
+      (base64/decode point))))
+
+#?(:cljs
+   (defn- ext->int
+     [{:keys [curve point]}]
+     (.decodePoint
+      ^js (curve/from curve)
+      (base64/decode point))))
 
 ;; TODO: clean up once cljs supports `s/select`
-(s/def :nuid.elliptic.curve.point.encoded/point ::base64/encoded)
+(s/def :nuid.elliptic.curve.point.encoded/point
+  ::base64/encoded)
+
 (s/def ::external
   (s/keys :req-un [::curve/curve
                    :nuid.elliptic.curve.point.encoded/point]))
-(s/def ::internal (fn [x] (satisfies? Point x)))
+
+(s/def ::internal
+  (fn [x] (satisfies? Point x)))
+
 (s/def ::representation
   (s/or
    ::external ::external
@@ -91,8 +104,7 @@
      (eq? [p q] (= p q))
      (neg [p] (.negate p))
      (inf? [p] (.isInfinity p))
-     (encode [p]
-       (base64/encode p))))
+     (encode [p] (base64/encode p))))
 
 #?(:cljs
    (let [xf       (map (comp (juxt curve/base curve/id) curve/from))
@@ -121,8 +133,7 @@
      (eq? [p q] (.eq p q))
      (neg [p] (.neg p))
      (inf? [p] (.isInfinity p))
-     (encode [p]
-       (base64/encode p))))
+     (encode [p] (base64/encode p))))
 
 (def transit-tag "ec.pt")
 
