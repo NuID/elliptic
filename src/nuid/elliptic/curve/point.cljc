@@ -2,7 +2,6 @@
   (:require
    [cognitect.transit :as t]
    [nuid.elliptic.curve :as curve]
-   [nuid.transit :as transit]
    [nuid.base64 :as base64]
    [nuid.bn :as bn]
    #?@(:clj
