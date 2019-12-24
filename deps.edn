@@ -2,24 +2,24 @@
  {org.bouncycastle/bcprov-jdk15on {:mvn/version "1.64"},
   org.clojure/clojure {:mvn/version "1.10.1"},
   org.clojure/test.check {:mvn/version "0.10.0"},
-  org.clojure/spec-alpha2
+  org.clojure/alpha.spec
   {:git/url "https://github.com/clojure/spec-alpha2",
-   :sha "de38650874c6f0bc19e7755feab4d65b3fffb268"},
+   :sha "8a5f96513582343c68e64686e2f0bd2c44adbe94"},
   nuid/base64
   {:git/url "https://github.com/nuid/base64.git",
-   :sha "ad2dd471b31d217465676e73edca3da38f0e3409"},
+   :sha "ab441adf14861b0e4a51329190a6672fbf8d7226"},
   com.cognitect/transit-clj {:mvn/version "0.8.319"},
   nuid/bn
   {:git/url "https://github.com/nuid/bn.git",
-   :sha "ae061648f41e1e75b5ca1bb97d4ac309328590e0"},
+   :sha "08752d9bb8d9809cd12696fc9639022d9578fcfb"},
   nuid/transit
   {:git/url "https://github.com/nuid/transit.git",
-   :sha "3ba35a2112aeb642a67833b97ed9e7ff5a266217"}},
+   :sha "3dbe614672cb6396b60070ab3ef911919a44c4e8"}},
  :aliases
  {:cljs
   {:extra-deps
    {org.clojure/clojurescript {:mvn/version "1.10.597"},
     org.clojure/spec.alpha {:mvn/version "0.2.176"},
     com.cognitect/transit-cljs {:mvn/version "0.8.256"},
-    thheller/shadow-cljs {:mvn/version "2.8.74"}}}},
+    thheller/shadow-cljs {:mvn/version "2.8.83"}}}},
  :paths ["src"]}
