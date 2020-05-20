@@ -1,96 +1,70 @@
 (ns nuid.elliptic.curve
-  #?(:clj
-     (:import
-      (org.bouncycastle.math.ec.custom.sec SecP256K1Curve)
-      (org.bouncycastle.crypto.ec CustomNamedCurves)
-      (org.bouncycastle.asn1.x9 X9ECParameters)))
   (:require
+   [nuid.base64 :as base64]
+   [nuid.elliptic.curve.proto.curve :as proto.curve]
    #?@(:clj
        [[clojure.alpha.spec.gen :as gen]
-        [clojure.alpha.spec :as s]]
+        [clojure.alpha.spec :as s]
+        [nuid.elliptic.curve.impl.bouncycastle]]
        :cljs
        [[clojure.spec.gen.alpha :as gen]
         [clojure.test.check.generators]
         [clojure.spec.alpha :as s]
-        ["elliptic" :as e]])))
+        [nuid.elliptic.curve.impl.ellipticjs]])))
 
-(defprotocol Curveable
-  (from [x]))
+(s/def ::id
+  #{::secp256k1})
 
-(defprotocol Curve
-  (id    [c])
-  (base  [c])
-  (order [c]))
+(s/def ::parameters
+  (s/keys
+   :req [::id]))
 
-(s/def ::id #{"secp256k1"})
-(s/def ::external (s/keys :req-un [::id]))
-(s/def ::internal (fn [x] (satisfies? Curve x)))
 (s/def ::representation
   (s/or
-   ::external ::external
-   ::internal ::internal))
+   ::proto.curve/curve ::proto.curve/curve
+   ::parameters        ::parameters))
+
+(defmethod proto.curve/curve->parameters :default
+  [c]
+  (proto.curve/encode c))
+
+(defmethod proto.curve/parameters->curve :default
+  [{::keys [id]}]
+  (proto.curve/from id))
+
+(s/def ::parameters<>curve
+  (s/conformer
+   (fn [x]
+     (let [c (s/conform ::representation x)]
+       (cond
+         (s/invalid? c)                    ::s/invalid
+         (= ::parameters        (first c)) (proto.curve/parameters->curve (second c))
+         (= ::proto.curve/curve (first c)) (second c)
+         :else                             ::s/invalid)))
+   (fn [x]
+     (let [c (s/conform ::representation x)]
+       (cond
+         (s/invalid? c)                    ::s/invalid
+         (= ::parameters        (first c)) (second c)
+         (= ::proto.curve/curve (first c)) (proto.curve/curve->parameters (second c))
+         :else                             ::s/invalid)))))
 
 (s/def ::curve
   (s/with-gen
-    (s/conformer
-     (fn [x]
-       (let [c (s/conform ::representation x)]
-         (cond
-           (s/invalid? c)           ::s/invalid
-           (= ::external (first c)) (from (:id (second c)))
-           (= ::internal (first c)) (second c)
-           :else                    ::s/invalid)))
-     (fn [x]
-       (let [c (s/conform ::representation x)]
-         (cond
-           (s/invalid? c)           ::s/invalid
-           (= ::external (first c)) (second c)
-           (= ::internal (first c)) {:id (id (second c))}
-           :else                    ::s/invalid))))
+    ::parameters<>curve
     (fn []
       (->>
-       (s/gen ::external)
-       (gen/fmap (comp from :id))))))
+       (s/gen ::parameters)
+       (gen/fmap (partial s/conform ::parameters<>curve))))))
 
-#?(:clj
-   (extend-protocol Curveable
-     java.lang.String
-     (from [x] (CustomNamedCurves/getByName x))
+(s/def ::point
+  ::base64/encoded)
 
-     clojure.lang.Keyword
-     (from [x] (from (name x)))
-
-     org.bouncycastle.asn1.x9.X9ECParameters
-     (from [x] (.getCurve x))))
-
-#?(:clj
-   (extend-protocol Curve
-     org.bouncycastle.asn1.x9.X9ECParameters
-     (id    [c] (id (from c)))
-     (base  [c] (.getG c))
-     (order [c] (.getN c))
-
-     org.bouncycastle.math.ec.custom.sec.SecP256K1Curve
-     (id    [c] "secp256k1")
-     (base  [c] (base (from (id c))))
-     (order [c] (order (from (id c))))))
-
-#?(:cljs
-   (defrecord Wrapped [id- curve]
-     Curveable
-     (from [_] (.-curve ^js curve))
-
-     Curve
-     (id    [_] id-)
-     (base  [_] (.-g ^js curve))
-     (order [_] (.-n ^js curve))))
-
-#?(:cljs
-   (extend-protocol Curveable
-     string
-     (from [x] (->Wrapped x (e/ec. x)))
-
-     cljs.core.Keyword
-     (from [x] (from (name x)))))
-
-#?(:cljs (def exports #js {}))
+(def from              proto.curve/from)
+(def id                proto.curve/id)
+(def base              proto.curve/base)
+(def order             proto.curve/order)
+(def decode-point      proto.curve/decode-point)
+(def encode            proto.curve/encode)
+(def curve->parameters proto.curve/curve->parameters)
+(def parameters->curve proto.curve/parameters->curve)

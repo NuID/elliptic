@@ -28,7 +28,7 @@ $ clj # or shadow-cljs node-repl
 => (require '[nuid.elliptic.curve :as curve])
 => (require '[nuid.transit :as transit])
 => (require '[nuid.bn :as bn])
-=> (def c (curve/from :secp256k1))
+=> (def c (curve/from ::curve/secp256k1))
 => (def g (curve/base c))
 => (def n (curve/order c))
 => (def k (bn/from "123333333333333333333333333333333333333333321"))
