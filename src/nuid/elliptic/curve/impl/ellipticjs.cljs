@@ -25,7 +25,8 @@
   string
   (from [x] (proto.curve/from
              (case x
-               "secp256k1" :nuid.elliptic.curve/secp256k1))))
+               "nuid.elliptic.curve/secp256k1" :nuid.elliptic.curve/secp256k1
+               "secp256k1"                     :nuid.elliptic.curve/secp256k1))))
 
 (def base->id
   (into

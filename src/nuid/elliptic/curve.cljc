@@ -12,8 +12,10 @@
         [clojure.spec.alpha :as s]
         [nuid.elliptic.curve.impl.ellipticjs]])))
 
-(s/def ::id
+(def ids
   #{::secp256k1})
+
+(s/def ::id ids)
 
 (s/def ::parameters
   (s/keys
