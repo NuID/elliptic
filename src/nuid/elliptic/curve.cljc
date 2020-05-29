@@ -1,7 +1,7 @@
 (ns nuid.elliptic.curve
   (:require
    [nuid.base64 :as base64]
-   [nuid.elliptic.curve.proto.curve :as proto.curve]
+   [nuid.elliptic.curve.proto :as curve.proto]
    #?@(:clj
        [[clojure.alpha.spec.gen :as gen]
         [clojure.alpha.spec :as s]
@@ -23,16 +23,16 @@
 
 (s/def ::representation
   (s/or
-   ::proto.curve/curve ::proto.curve/curve
+   ::curve.proto/curve ::curve.proto/curve
    ::parameters        ::parameters))
 
-(defmethod proto.curve/curve->parameters :default
+(defmethod curve.proto/curve->parameters :default
   [c]
-  (proto.curve/encode c))
+  (curve.proto/encode c))
 
-(defmethod proto.curve/parameters->curve :default
+(defmethod curve.proto/parameters->curve :default
   [{::keys [id]}]
-  (proto.curve/from id))
+  (curve.proto/from id))
 
 (s/def ::parameters<>curve
   (s/conformer
@@ -40,15 +40,15 @@
      (let [c (s/conform ::representation x)]
        (cond
          (s/invalid? c)                    ::s/invalid
-         (= ::parameters        (first c)) (proto.curve/parameters->curve (second c))
-         (= ::proto.curve/curve (first c)) (second c)
+         (= ::parameters        (first c)) (curve.proto/parameters->curve (second c))
+         (= ::curve.proto/curve (first c)) (second c)
          :else                             ::s/invalid)))
    (fn [x]
      (let [c (s/conform ::representation x)]
        (cond
          (s/invalid? c)                    ::s/invalid
          (= ::parameters        (first c)) (second c)
-         (= ::proto.curve/curve (first c)) (proto.curve/curve->parameters (second c))
+         (= ::curve.proto/curve (first c)) (curve.proto/curve->parameters (second c))
          :else                             ::s/invalid)))))
 
 (s/def ::curve
@@ -62,11 +62,12 @@
 (s/def ::point
   ::base64/encoded)
 
-(def from              proto.curve/from)
-(def id                proto.curve/id)
-(def base              proto.curve/base)
-(def order             proto.curve/order)
-(def decode-point      proto.curve/decode-point)
-(def encode            proto.curve/encode)
-(def curve->parameters proto.curve/curve->parameters)
-(def parameters->curve proto.curve/parameters->curve)
+(defn from         [x]     (curve.proto/from x))
+(defn id           [c]     (curve.proto/id c))
+(defn base         [c]     (curve.proto/base c))
+(defn order        [c]     (curve.proto/order c))
+(defn encode       [c]     (curve.proto/encode c))
+(defn decode-point [c enc] (curve.proto/decode-point c enc))
+
+(def curve->parameters curve.proto/curve->parameters)
+(def parameters->curve curve.proto/parameters->curve)

@@ -1,4 +1,4 @@
-(ns nuid.elliptic.curve.proto.point
+(ns nuid.elliptic.curve.point.proto
   (:require
    #?@(:clj  [[clojure.alpha.spec :as s]]
        :cljs [[clojure.spec.alpha :as s]])))

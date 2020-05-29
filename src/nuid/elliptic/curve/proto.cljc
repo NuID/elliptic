@@ -1,4 +1,4 @@
-(ns nuid.elliptic.curve.proto.curve
+(ns nuid.elliptic.curve.proto
   (:require
    #?@(:clj  [[clojure.alpha.spec :as s]]
        :cljs [[clojure.spec.alpha :as s]])))
@@ -10,8 +10,8 @@
   (id           [c])
   (base         [c])
   (order        [c])
-  (decode-point [c encoded-point])
-  (encode       [c]))
+  (encode       [c])
+  (decode-point [c enc]))
 
 (s/def ::curve
   (fn [x] (satisfies? Curve x)))

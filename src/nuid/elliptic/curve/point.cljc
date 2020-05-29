@@ -2,8 +2,8 @@
   (:require
    [nuid.bn :as bn]
    [nuid.elliptic.curve :as curve]
-   [nuid.elliptic.curve.proto.curve :as proto.curve]
-   [nuid.elliptic.curve.proto.point :as proto.point]
+   [nuid.elliptic.curve.proto :as curve.proto]
+   [nuid.elliptic.curve.point.proto :as point.proto]
    #?@(:clj
        [[clojure.alpha.spec.gen :as gen]
         [clojure.alpha.spec :as s]]
@@ -20,19 +20,19 @@
 
 (s/def ::representation
   (s/or
-   ::proto.point/point ::proto.point/point
+   ::point.proto/point ::point.proto/point
    ::parameters        ::parameters))
 
-(defmethod proto.point/point->parameters :default
+(defmethod point.proto/point->parameters :default
   [point]
-  {::curve/parameters (proto.curve/encode (proto.curve/from point))
-   ::curve/point      (proto.point/encode point)})
+  {::curve/parameters (curve.proto/encode (curve.proto/from point))
+   ::curve/point      (point.proto/encode point)})
 
-(defmethod proto.point/parameters->point :default
+(defmethod point.proto/parameters->point :default
   [{::curve/keys [parameters point]}]
   (->
-   (proto.curve/parameters->curve parameters)
-   (proto.curve/decode-point point)))
+   (curve.proto/parameters->curve parameters)
+   (curve.proto/decode-point point)))
 
 (s/def ::parameters<>point
   (s/conformer
@@ -40,15 +40,15 @@
      (let [c (s/conform ::representation x)]
        (cond
          (s/invalid? c)                    ::s/invalid
-         (= ::parameters        (first c)) (proto.point/parameters->point (second c))
-         (= ::proto.point/point (first c)) (second c)
+         (= ::parameters        (first c)) (point.proto/parameters->point (second c))
+         (= ::point.proto/point (first c)) (second c)
          :else                             ::s/invalid)))
    (fn [x]
      (let [c (s/conform ::representation x)]
        (cond
          (s/invalid? c)                    ::s/invalid
          (= ::parameters        (first c)) (second c)
-         (= ::proto.point/point (first c)) (proto.point/point->parameters (second c))
+         (= ::point.proto/point (first c)) (point.proto/point->parameters (second c))
          :else                             ::s/invalid)))))
 
 (s/def ::base
@@ -57,7 +57,7 @@
     (fn []
       (->>
        (s/gen ::curve/curve)
-       (gen/fmap proto.curve/base)))))
+       (gen/fmap curve.proto/base)))))
 
 (s/def ::point
   (s/with-gen
@@ -65,14 +65,15 @@
     (fn []
       (->>
        (gen/tuple (s/gen ::base) (s/gen ::bn/bn))
-       (gen/fmap (partial apply proto.point/mul))
-       (gen/such-that (complement proto.point/inf?))))))
+       (gen/fmap (partial apply point.proto/mul))
+       (gen/such-that (complement point.proto/inf?))))))
 
-(def add               proto.point/add)
-(def mul               proto.point/mul)
-(def eq?               proto.point/eq?)
-(def neg               proto.point/neg)
-(def inf?              proto.point/inf?)
-(def encode            proto.point/encode)
-(def point->parameters proto.point/point->parameters)
-(def parameters->point proto.point/parameters->point)
+(defn add    [p q] (point.proto/add    p q))
+(defn mul    [p k] (point.proto/mul    p k))
+(defn eq?    [p q] (point.proto/eq?    p q))
+(defn neg    [p]   (point.proto/neg    p))
+(defn inf?   [p]   (point.proto/inf?   p))
+(defn encode [p]   (point.proto/encode p))
+
+(def point->parameters point.proto/point->parameters)
+(def parameters->point point.proto/parameters->point)
