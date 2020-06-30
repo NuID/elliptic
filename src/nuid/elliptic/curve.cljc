@@ -2,6 +2,7 @@
   (:require
    [nuid.base64 :as base64]
    [nuid.elliptic.curve.proto :as curve.proto]
+   [nuid.ident.elliptic :as ident.elliptic]
    #?@(:clj
        [[clojure.alpha.spec.gen :as gen]
         [clojure.alpha.spec :as s]
@@ -12,8 +13,7 @@
         [clojure.spec.alpha :as s]
         [nuid.elliptic.curve.impl.ellipticjs]])))
 
-(def ids
-  #{::secp256k1})
+(def ids ident.elliptic/curve-ids)
 
 (s/def ::id ids)
 

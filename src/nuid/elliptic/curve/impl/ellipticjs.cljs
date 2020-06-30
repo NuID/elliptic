@@ -16,7 +16,7 @@
   (order        [_]     (obj/get curve "n"))
   (encode       [_]     {:nuid.elliptic.curve/id id})
   (decode-point [_ enc] (.decodePoint
-                         (obj/get curve "curve")
+                         ^js (obj/get curve "curve")
                          (base64.proto/decode enc))))
 
 (extend-protocol curve.proto/Curveable
