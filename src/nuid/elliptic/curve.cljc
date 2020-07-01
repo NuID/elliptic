@@ -1,96 +1,73 @@
 (ns nuid.elliptic.curve
-  #?(:clj
-     (:import
-      (org.bouncycastle.math.ec.custom.sec SecP256K1Curve)
-      (org.bouncycastle.crypto.ec CustomNamedCurves)
-      (org.bouncycastle.asn1.x9 X9ECParameters)))
   (:require
+   [nuid.base64 :as base64]
+   [nuid.elliptic.curve.proto :as curve.proto]
+   [nuid.ident.elliptic :as ident.elliptic]
    #?@(:clj
        [[clojure.alpha.spec.gen :as gen]
-        [clojure.alpha.spec :as s]]
+        [clojure.alpha.spec :as s]
+        [nuid.elliptic.curve.impl.bouncycastle]]
        :cljs
        [[clojure.spec.gen.alpha :as gen]
         [clojure.test.check.generators]
         [clojure.spec.alpha :as s]
-        ["elliptic" :as e]])))
+        [nuid.elliptic.curve.impl.ellipticjs]])))
 
-(defprotocol Curveable
-  (from [x]))
+(def ids ident.elliptic/curve-ids)
 
-(defprotocol Curve
-  (id    [c])
-  (base  [c])
-  (order [c]))
+(s/def ::id ids)
 
-(s/def ::id #{"secp256k1"})
-(s/def ::external (s/keys :req-un [::id]))
-(s/def ::internal (fn [x] (satisfies? Curve x)))
+(s/def ::parameters
+  (s/keys
+   :req [::id]))
+
 (s/def ::representation
   (s/or
-   ::external ::external
-   ::internal ::internal))
+   ::curve.proto/curve ::curve.proto/curve
+   ::parameters        ::parameters))
+
+(defmethod curve.proto/curve->parameters :default
+  [c]
+  (curve.proto/encode c))
+
+(defmethod curve.proto/parameters->curve :default
+  [{::keys [id]}]
+  (curve.proto/from id))
+
+(s/def ::parameters<>curve
+  (s/conformer
+   (fn [x]
+     (let [c (s/conform ::representation x)]
+       (cond
+         (s/invalid? c)                    ::s/invalid
+         (= ::parameters        (first c)) (curve.proto/parameters->curve (second c))
+         (= ::curve.proto/curve (first c)) (second c)
+         :else                             ::s/invalid)))
+   (fn [x]
+     (let [c (s/conform ::representation x)]
+       (cond
+         (s/invalid? c)                    ::s/invalid
+         (= ::parameters        (first c)) (second c)
+         (= ::curve.proto/curve (first c)) (curve.proto/curve->parameters (second c))
+         :else                             ::s/invalid)))))
 
 (s/def ::curve
   (s/with-gen
-    (s/conformer
-     (fn [x]
-       (let [c (s/conform ::representation x)]
-         (cond
-           (s/invalid? c)           ::s/invalid
-           (= ::external (first c)) (from (:id (second c)))
-           (= ::internal (first c)) (second c)
-           :else                    ::s/invalid)))
-     (fn [x]
-       (let [c (s/conform ::representation x)]
-         (cond
-           (s/invalid? c)           ::s/invalid
-           (= ::external (first c)) (second c)
-           (= ::internal (first c)) {:id (id (second c))}
-           :else                    ::s/invalid))))
+    ::parameters<>curve
     (fn []
       (->>
-       (s/gen ::external)
-       (gen/fmap (comp from :id))))))
+       (s/gen ::parameters)
+       (gen/fmap (partial s/conform ::parameters<>curve))))))
 
-#?(:clj
-   (extend-protocol Curveable
-     java.lang.String
-     (from [x] (CustomNamedCurves/getByName x))
+(s/def ::point
+  ::base64/encoded)
 
-     clojure.lang.Keyword
-     (from [x] (from (name x)))
+(defn from         [x]     (curve.proto/from x))
+(defn id           [c]     (curve.proto/id c))
+(defn base         [c]     (curve.proto/base c))
+(defn order        [c]     (curve.proto/order c))
+(defn encode       [c]     (curve.proto/encode c))
+(defn decode-point [c enc] (curve.proto/decode-point c enc))
 
-     org.bouncycastle.asn1.x9.X9ECParameters
-     (from [x] (.getCurve x))))
-
-#?(:clj
-   (extend-protocol Curve
-     org.bouncycastle.asn1.x9.X9ECParameters
-     (id    [c] (id (from c)))
-     (base  [c] (.getG c))
-     (order [c] (.getN c))
-
-     org.bouncycastle.math.ec.custom.sec.SecP256K1Curve
-     (id    [c] "secp256k1")
-     (base  [c] (base (from (id c))))
-     (order [c] (order (from (id c))))))
-
-#?(:cljs
-   (defrecord Wrapped [id- curve]
-     Curveable
-     (from [_] (.-curve ^js curve))
-
-     Curve
-     (id    [_] id-)
-     (base  [_] (.-g ^js curve))
-     (order [_] (.-n ^js curve))))
-
-#?(:cljs
-   (extend-protocol Curveable
-     string
-     (from [x] (->Wrapped x (e/ec. x)))
-
-     cljs.core.Keyword
-     (from [x] (from (name x)))))
-
-#?(:cljs (def exports #js {}))
+(def curve->parameters curve.proto/curve->parameters)
+(def parameters->curve curve.proto/parameters->curve)

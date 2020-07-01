@@ -1,15 +1,1 @@
-{:deps {:aliases [:cljs]}
- :builds
- {:browser
-  {:modules    {:nuid_elliptic
-                {:entries
-                 [nuid.elliptic.curve
-                  nuid.elliptic.curve.point]}},
-   :output-dir "target/browser",
-   :asset-path "target/browser",
-   :target     :browser},
-
-  :node
-  {:output-to   "target/node/nuid_elliptic.js",
-   :exports-var nuid.elliptic.curve/exports,
-   :target      :node-library}}}
+{:deps {:aliases [:cljs]}}
