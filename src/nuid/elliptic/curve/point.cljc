@@ -1,16 +1,12 @@
 (ns nuid.elliptic.curve.point
   (:require
+   [clojure.spec.alpha :as s]
+   [clojure.spec.gen.alpha :as gen]
+   [clojure.test.check.generators]
    [nuid.bn :as bn]
    [nuid.elliptic.curve :as curve]
    [nuid.elliptic.curve.proto :as curve.proto]
-   [nuid.elliptic.curve.point.proto :as point.proto]
-   #?@(:clj
-       [[clojure.alpha.spec.gen :as gen]
-        [clojure.alpha.spec :as s]]
-       :cljs
-       [[clojure.spec.gen.alpha :as gen]
-        [clojure.test.check.generators]
-        [clojure.spec.alpha :as s]])))
+   [nuid.elliptic.curve.point.proto :as point.proto]))
 
 (s/def ::parameters
   (s/keys
