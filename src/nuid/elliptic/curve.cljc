@@ -1,17 +1,15 @@
 (ns nuid.elliptic.curve
   (:require
+   [clojure.spec.alpha :as s]
+   [clojure.spec.gen.alpha :as gen]
+   [clojure.test.check.generators]
    [nuid.base64 :as base64]
    [nuid.elliptic.curve.proto :as curve.proto]
    [nuid.ident.elliptic :as ident.elliptic]
    #?@(:clj
-       [[clojure.alpha.spec.gen :as gen]
-        [clojure.alpha.spec :as s]
-        [nuid.elliptic.curve.impl.bouncycastle]]
+       [[nuid.elliptic.curve.impl.bouncycastle]]
        :cljs
-       [[clojure.spec.gen.alpha :as gen]
-        [clojure.test.check.generators]
-        [clojure.spec.alpha :as s]
-        [nuid.elliptic.curve.impl.ellipticjs]])))
+       [[nuid.elliptic.curve.impl.ellipticjs]])))
 
 (def ids ident.elliptic/curve-ids)
 
